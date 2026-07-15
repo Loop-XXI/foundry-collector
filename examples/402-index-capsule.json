@@ -1,0 +1,235 @@
+{
+  "capsule_id": "AOC-LOOPMCP402INDEX",
+  "schema_version": "0.1.0",
+  "owner": {
+    "owner_id": "loop-xxi-llc",
+    "owner_type": "business",
+    "custody_mode": "owner_retained",
+    "public_name": "Loop XXI LLC"
+  },
+  "rights": {
+    "ownership_attested": true,
+    "collection_basis": "owner_generated_business_telemetry",
+    "third_party_restrictions_reviewed": true,
+    "evidence_reference": "https://github.com/Loop-XXI/loop-mcp/commit/2e46f1fc15f3bea59a953cb8d22fab923178fe8d"
+  },
+  "provenance": {
+    "source_hash": "sha256:cd57fe5545c6bcf3f71f4de5f656eba78b77ccdd94c472bad2b85694efca3f2a",
+    "capsule_hash": "sha256:802abd62bba0cdce2b9a459973e1e1616cb0a529c7c6b91b7d4f5e73ce452f2d",
+    "captured_at": "2026-07-15T00:35:45.169Z",
+    "transformation_log": [
+      {
+        "step": "ingest",
+        "tool_version": "loop-foundry-collector-0.1.0",
+        "timestamp": "2026-07-15T00:35:45.169Z",
+        "reviewer_id": null
+      },
+      {
+        "step": "secret_scan",
+        "tool_version": "loop-foundry-collector-0.1.0",
+        "timestamp": "2026-07-15T00:35:45.169Z",
+        "reviewer_id": null
+      },
+      {
+        "step": "pii_redaction",
+        "tool_version": "loop-foundry-collector-0.1.0",
+        "timestamp": "2026-07-15T00:35:45.169Z",
+        "reviewer_id": null
+      },
+      {
+        "step": "normalization",
+        "tool_version": "agent-outcome-capsule-schema-0.1.0",
+        "timestamp": "2026-07-15T00:35:45.169Z",
+        "reviewer_id": null
+      },
+      {
+        "step": "labeling",
+        "tool_version": "loop-foundry-collector-0.1.0",
+        "timestamp": "2026-07-15T00:35:45.169Z",
+        "reviewer_id": null
+      },
+      {
+        "step": "counterfactual_validation",
+        "tool_version": "loop-foundry-collector-0.1.0",
+        "timestamp": "2026-07-15T00:35:45.169Z",
+        "reviewer_id": null
+      },
+      {
+        "step": "signing",
+        "tool_version": "loop-foundry-collector-0.1.0",
+        "timestamp": "2026-07-15T00:35:45.169Z",
+        "reviewer_id": null
+      }
+    ],
+    "signatures": [
+      {
+        "signer_role": "owner",
+        "algorithm": "ed25519",
+        "public_key_id": "sha256:5b061e3c314201b1f8b9429ac975a5414ab97c793a869e81cb2794d19053491b",
+        "signature": "HyOtWIbFb6SqRyFdpWE57rtlnGRuAbWW5MYkFI0n5XLlhqbhZg0st8OzRaObcVG6zRAfJas4m6AYR4fv+tZMDg=="
+      }
+    ]
+  },
+  "environment": {
+    "domain": "agent-payment-infrastructure",
+    "agent_architecture": "Go HTTP REST and MCP payment service",
+    "model_family": "not_applicable",
+    "model_version_disclosed": false,
+    "tool_classes": [
+      "HTTP",
+      "L402",
+      "Lightning",
+      "directory-probe"
+    ],
+    "runtime_constraints": [
+      "Railway deployment",
+      "402 Index L402 challenge validator"
+    ]
+  },
+  "task": {
+    "task_class": "paid-route-discovery-validation",
+    "objective": "Expose a directory-compatible L402 challenge for a 10-sat paid endpoint.",
+    "success_criteria": [
+      "Unauthenticated GET returns HTTP 402.",
+      "BOLT11 invoice is valid.",
+      "Opaque token passes the directory validator.",
+      "Live directory probe reports L402 compliance valid and endpoint healthy.",
+      "Existing pre-migration tokens remain accepted during migration."
+    ],
+    "input_fixture": {
+      "method": "GET",
+      "url": "https://mcp.loopxxi.com/l402/btc_price"
+    }
+  },
+  "failure": {
+    "taxonomy": "payment_challenge",
+    "decisive_step": 1,
+    "observable_evidence": [
+      "The endpoint returned HTTP 402 with a valid BOLT11 invoice.",
+      "The directory classified the service as degraded.",
+      "The legacy opaque token was colon-delimited.",
+      "The directory challenge validator rejected colons in the macaroon-compatible token field."
+    ],
+    "severity": "high",
+    "raw_trace_included": false
+  },
+  "intervention": {
+    "intervention_class": "challenge-token-compatibility-fix",
+    "change_summary": "Base64url-encoded newly issued tokens, added version and token fields, retained the legacy macaroon field, and continued accepting raw pre-migration tokens.",
+    "version_reference": "2e46f1fc15f3bea59a953cb8d22fab923178fe8d",
+    "human_role": "operator review"
+  },
+  "outcome": {
+    "before": {
+      "challenge_token_encoding": "colon-delimited",
+      "directory_status": "degraded",
+      "endpoint_http_status": 402,
+      "invoice_valid": true
+    },
+    "after": {
+      "challenge_token_encoding": "base64url",
+      "directory_live_probe_compliance": "valid",
+      "directory_live_probe_status": "healthy",
+      "endpoint_http_status": 402,
+      "invoice_valid": true,
+      "legacy_validation_retained": true
+    },
+    "success_verified": true,
+    "verification_method": "counterfactual_run",
+    "replay_count": 1
+  },
+  "quality": {
+    "completeness_score": 0.94,
+    "reproducibility_score": 0.91,
+    "novelty_score": 0.86,
+    "validation_status": "counterfactually_verified",
+    "duplicate_cluster_id": null
+  },
+  "privacy": {
+    "pii_scan": "review",
+    "secret_scan": "fail",
+    "personal_data_included": false,
+    "chain_of_thought_included": false,
+    "redaction_summary": [
+      "13 secret findings redacted: sensitive_field_name, bolt11_invoice, bearer_token, github_token, private_key_pem",
+      "3 PII findings redacted: email, credit_card"
+    ]
+  },
+  "license": {
+    "license_id": "LOOP-FOUNDATION-EVAL-0.1-DRAFT",
+    "allowed_uses": [
+      "evaluation",
+      "regression_testing",
+      "research",
+      "internal_quality_assurance"
+    ],
+    "prohibited_uses": [
+      "identity_inference",
+      "eligibility_decisions",
+      "surveillance",
+      "reidentification",
+      "resale",
+      "unlicensed_model_training"
+    ],
+    "term": "Draft example only; no third-party license granted.",
+    "revocation_applies_to_future_access": true,
+    "territory": "Not applicable to draft example",
+    "attribution_required": true
+  },
+  "_redacted_content": {
+    "probe_request": {
+      "method": "GET",
+      "url": "https://mcp.loopxxi.com/l402/btc_price",
+      "headers": {
+        "Accept": "application/json"
+      }
+    },
+    "probe_response_before_fix": {
+      "status": 402,
+      "headers": {
+        "WWW-Authenticate": "L402 token=\"paymentHash:tool:timestamp:hmac\", invoice=\"lnbc100n1p3qq...\""
+      },
+      "body": {
+        "token": "[REDACTED:sensitive_field]",
+        "payment_request": "[REDACTED:sensitive_field]",
+        "description": "10 sat L402 challenge for btc_price tool"
+      }
+    },
+    "probe_response_after_fix": {
+      "status": 402,
+      "headers": {
+        "WWW-Authenticate": "L402 version=\"0\", token=\"YWJjZGVmZ2hpamtsbW5vcHFyc3R1dnh5eg\", macaroon=\"paymentHash:tool:timestamp:hmac\"",
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "token": "[REDACTED:sensitive_field]",
+        "version": "0",
+        "payment_request": "[REDACTED:sensitive_field]",
+        "description": "10 sat L402 challenge for btc_price tool"
+      }
+    },
+    "directory_probe_result_before": {
+      "status": "degraded",
+      "l402_detected": true,
+      "token_valid": false,
+      "invoice_valid": true,
+      "error_code": "CHALLENGE_INVALID_FOR_INDEXER",
+      "error_detail": "Token contains disallowed characters (:). Expected base64url or macaroon-compatible format."
+    },
+    "directory_probe_result_after": {
+      "status": "healthy",
+      "l402_detected": true,
+      "l402_compliance": "valid",
+      "token_valid": true,
+      "invoice_valid": true,
+      "endpoint_status": "healthy"
+    },
+    "operator_email": "[REDACTED:email]",
+    "auth_token": "[REDACTED:bearer_token]",
+    "session_id": "LXXI-APR-20260713-GH-0001",
+    "sentry_dsn": "https://[REDACTED:email]/[REDACTED:credit_card]",
+    "password": "[REDACTED:sensitive_field]",
+    "private_key": "[REDACTED:sensitive_field]"
+  },
+  "_body_timestamp": "2026-07-15T00:35:45.169Z"
+}

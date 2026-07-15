@@ -1,0 +1,211 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://loopxxi.com/schemas/agent-outcome-capsule-v0.1.json",
+  "title": "Agent Outcome Capsule",
+  "description": "A privacy-reviewed, provenance-bound record of a real agent execution failure, intervention, and verified outcome. It is not the raw trace or a chain-of-thought record.",
+  "type": "object",
+  "required": [
+    "capsule_id",
+    "schema_version",
+    "owner",
+    "rights",
+    "provenance",
+    "environment",
+    "task",
+    "failure",
+    "intervention",
+    "outcome",
+    "quality",
+    "privacy",
+    "license"
+  ],
+  "properties": {
+    "capsule_id": {
+      "type": "string",
+      "pattern": "^AOC-[A-Z0-9]{8,64}$"
+    },
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "owner": {
+      "type": "object",
+      "required": ["owner_id", "owner_type", "custody_mode"],
+      "properties": {
+        "owner_id": {"type": "string"},
+        "owner_type": {"enum": ["business", "developer", "research_organization"]},
+        "custody_mode": {"const": "owner_retained"},
+        "public_name": {"type": ["string", "null"]}
+      },
+      "additionalProperties": false
+    },
+    "rights": {
+      "type": "object",
+      "required": ["ownership_attested", "collection_basis", "third_party_restrictions_reviewed"],
+      "properties": {
+        "ownership_attested": {"type": "boolean"},
+        "collection_basis": {"enum": ["owner_generated_business_telemetry", "licensed_source", "explicit_contributor_permission"]},
+        "third_party_restrictions_reviewed": {"type": "boolean"},
+        "evidence_reference": {"type": ["string", "null"]}
+      },
+      "additionalProperties": false
+    },
+    "provenance": {
+      "type": "object",
+      "required": ["source_hash", "capsule_hash", "captured_at", "transformation_log", "signatures"],
+      "properties": {
+        "source_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "capsule_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "captured_at": {"type": "string", "format": "date-time"},
+        "transformation_log": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["step", "tool_version", "timestamp"],
+            "properties": {
+              "step": {"enum": ["ingest", "secret_scan", "pii_redaction", "normalization", "labeling", "counterfactual_validation", "human_review", "signing"]},
+              "tool_version": {"type": "string"},
+              "timestamp": {"type": "string", "format": "date-time"},
+              "reviewer_id": {"type": ["string", "null"]}
+            },
+            "additionalProperties": false
+          }
+        },
+        "signatures": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["signer_role", "algorithm", "public_key_id", "signature"],
+            "properties": {
+              "signer_role": {"enum": ["owner", "validator"]},
+              "algorithm": {"enum": ["ed25519", "p256"]},
+              "public_key_id": {"type": "string"},
+              "signature": {"type": "string"}
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "environment": {
+      "type": "object",
+      "required": ["domain", "agent_architecture", "model_family", "tool_classes"],
+      "properties": {
+        "domain": {"type": "string"},
+        "agent_architecture": {"type": "string"},
+        "model_family": {"type": "string"},
+        "model_version_disclosed": {"type": "boolean"},
+        "tool_classes": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "runtime_constraints": {"type": "array", "items": {"type": "string"}}
+      },
+      "additionalProperties": false
+    },
+    "task": {
+      "type": "object",
+      "required": ["task_class", "objective", "success_criteria"],
+      "properties": {
+        "task_class": {"type": "string"},
+        "objective": {"type": "string"},
+        "success_criteria": {"type": "array", "items": {"type": "string"}},
+        "input_fixture": {"type": ["object", "array", "string", "null"]}
+      },
+      "additionalProperties": false
+    },
+    "failure": {
+      "type": "object",
+      "required": ["taxonomy", "decisive_step", "observable_evidence", "severity"],
+      "properties": {
+        "taxonomy": {
+          "enum": [
+            "tool_selection",
+            "tool_argument",
+            "payment_challenge",
+            "payment_retry",
+            "payment_settlement_attribution",
+            "discovery",
+            "authentication",
+            "browser_execution",
+            "retrieval",
+            "planning",
+            "looping",
+            "handoff",
+            "policy",
+            "cost_overrun",
+            "latency",
+            "downstream_fulfillment",
+            "ledger_reconciliation",
+            "other"
+          ]
+        },
+        "decisive_step": {"type": "integer", "minimum": 0},
+        "observable_evidence": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+        "severity": {"enum": ["low", "medium", "high", "critical"]},
+        "raw_trace_included": {"const": false}
+      },
+      "additionalProperties": false
+    },
+    "intervention": {
+      "type": "object",
+      "required": ["intervention_class", "change_summary", "version_reference"],
+      "properties": {
+        "intervention_class": {"type": "string"},
+        "change_summary": {"type": "string"},
+        "version_reference": {"type": "string"},
+        "human_role": {"type": ["string", "null"]}
+      },
+      "additionalProperties": false
+    },
+    "outcome": {
+      "type": "object",
+      "required": ["before", "after", "success_verified", "verification_method"],
+      "properties": {
+        "before": {"type": "object"},
+        "after": {"type": "object"},
+        "success_verified": {"type": "boolean"},
+        "verification_method": {"enum": ["deterministic_test", "replay", "counterfactual_run", "production_observation", "human_acceptance"]},
+        "replay_count": {"type": "integer", "minimum": 0}
+      },
+      "additionalProperties": false
+    },
+    "quality": {
+      "type": "object",
+      "required": ["completeness_score", "reproducibility_score", "novelty_score", "validation_status"],
+      "properties": {
+        "completeness_score": {"type": "number", "minimum": 0, "maximum": 1},
+        "reproducibility_score": {"type": "number", "minimum": 0, "maximum": 1},
+        "novelty_score": {"type": "number", "minimum": 0, "maximum": 1},
+        "validation_status": {"enum": ["owner_attested", "validator_reviewed", "counterfactually_verified"]},
+        "duplicate_cluster_id": {"type": ["string", "null"]}
+      },
+      "additionalProperties": false
+    },
+    "privacy": {
+      "type": "object",
+      "required": ["pii_scan", "secret_scan", "personal_data_included", "chain_of_thought_included"],
+      "properties": {
+        "pii_scan": {"enum": ["pass", "review", "fail"]},
+        "secret_scan": {"enum": ["pass", "review", "fail"]},
+        "personal_data_included": {"const": false},
+        "chain_of_thought_included": {"const": false},
+        "redaction_summary": {"type": "array", "items": {"type": "string"}}
+      },
+      "additionalProperties": false
+    },
+    "license": {
+      "type": "object",
+      "required": ["license_id", "allowed_uses", "prohibited_uses", "term", "revocation_applies_to_future_access"],
+      "properties": {
+        "license_id": {"type": "string"},
+        "allowed_uses": {"type": "array", "items": {"enum": ["evaluation", "regression_testing", "fine_tuning", "research", "internal_quality_assurance"]}, "uniqueItems": true},
+        "prohibited_uses": {"type": "array", "items": {"enum": ["identity_inference", "eligibility_decisions", "surveillance", "reidentification", "resale", "unlicensed_model_training"]}, "uniqueItems": true},
+        "term": {"type": "string"},
+        "revocation_applies_to_future_access": {"type": "boolean"},
+        "territory": {"type": "string"},
+        "attribution_required": {"type": "boolean"}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

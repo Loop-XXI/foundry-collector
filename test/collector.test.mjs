@@ -6,7 +6,9 @@ import { tmpdir } from 'node:os';
 import { strict as assert } from 'node:assert';
 
 const NODE = process.execPath;
-const COLLECTOR = resolve(import.meta.dirname, '..', 'foundry-collector.mjs');
+import { fileURLToPath } from 'node:url';
+const __dirname = fileURLToPath(new URL('.', import.meta.url));
+const COLLECTOR = resolve(__dirname, '..', 'foundry-collector.mjs');
 const TMP = join(tmpdir(), `foundry-test-${Date.now()}`);
 
 let testsPassed = 0;

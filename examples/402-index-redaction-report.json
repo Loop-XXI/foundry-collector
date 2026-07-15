@@ -1,0 +1,121 @@
+{
+  "tool_version": "loop-foundry-collector-0.1.0",
+  "generated_at": "2026-07-15T00:35:45.170Z",
+  "source_hash": "sha256:cd57fe5545c6bcf3f71f4de5f656eba78b77ccdd94c472bad2b85694efca3f2a",
+  "capsule_hash": "sha256:802abd62bba0cdce2b9a459973e1e1616cb0a529c7c6b91b7d4f5e73ce452f2d",
+  "summary": {
+    "total_secret_findings": 13,
+    "total_pii_findings": 3,
+    "total_cot_findings": 0,
+    "critical_secrets": 3,
+    "high_secrets": 10,
+    "chain_of_thought_detected": false
+  },
+  "secret_findings": [
+    {
+      "type": "sensitive_field_name",
+      "severity": "high",
+      "path": "$.probe_response_before_fix.headers.WWW-Authenticate",
+      "preview": "[sensitive key: WWW-Authenticate]"
+    },
+    {
+      "type": "sensitive_field_name",
+      "severity": "high",
+      "path": "$.probe_response_before_fix.body.token",
+      "preview": "[sensitive key: token]"
+    },
+    {
+      "type": "bolt11_invoice",
+      "severity": "high",
+      "path": "$.probe_response_before_fix.body.payment_request",
+      "preview": "lnbc100n1p3q...[redacted]"
+    },
+    {
+      "type": "sensitive_field_name",
+      "severity": "high",
+      "path": "$.probe_response_after_fix.headers.WWW-Authenticate",
+      "preview": "[sensitive key: WWW-Authenticate]"
+    },
+    {
+      "type": "sensitive_field_name",
+      "severity": "high",
+      "path": "$.probe_response_after_fix.body.token",
+      "preview": "[sensitive key: token]"
+    },
+    {
+      "type": "bolt11_invoice",
+      "severity": "high",
+      "path": "$.probe_response_after_fix.body.payment_request",
+      "preview": "lnbc100n1p3q...[redacted]"
+    },
+    {
+      "type": "sensitive_field_name",
+      "severity": "high",
+      "path": "$.auth_token",
+      "preview": "[sensitive key: auth_token]"
+    },
+    {
+      "type": "bearer_token",
+      "severity": "critical",
+      "path": "$.auth_token",
+      "preview": "Bearer ghp_a...[redacted]"
+    },
+    {
+      "type": "github_token",
+      "severity": "critical",
+      "path": "$.auth_token",
+      "preview": "ghp_abcdef12...[redacted]"
+    },
+    {
+      "type": "sensitive_field_name",
+      "severity": "high",
+      "path": "$.session_id",
+      "preview": "[sensitive key: session_id]"
+    },
+    {
+      "type": "sensitive_field_name",
+      "severity": "high",
+      "path": "$.password",
+      "preview": "[sensitive key: password]"
+    },
+    {
+      "type": "sensitive_field_name",
+      "severity": "high",
+      "path": "$.private_key",
+      "preview": "[sensitive key: private_key]"
+    },
+    {
+      "type": "private_key_pem",
+      "severity": "critical",
+      "path": "$.private_key",
+      "preview": "-----BEGIN E...[redacted]"
+    }
+  ],
+  "pii_findings": [
+    {
+      "type": "email",
+      "severity": "medium",
+      "path": "$.operator_email",
+      "preview": "josh@loopxxi...[redacted]"
+    },
+    {
+      "type": "email",
+      "severity": "medium",
+      "path": "$.sentry_dsn",
+      "preview": "da46838d1234...[redacted]"
+    },
+    {
+      "type": "credit_card",
+      "severity": "high",
+      "path": "$.sentry_dsn",
+      "preview": "451154112846...[redacted]"
+    }
+  ],
+  "cot_findings": [],
+  "privacy_assessment": {
+    "secret_scan": "fail",
+    "pii_scan": "review",
+    "chain_of_thought_included": false
+  },
+  "note": "This report is generated locally. No data was transmitted externally. Secret and PII values have been replaced with [REDACTED:type] markers in the capsule body."
+}

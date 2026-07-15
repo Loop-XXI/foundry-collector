@@ -1,0 +1,38 @@
+{
+  "name": "@loop-xxi/foundry-collector",
+  "version": "0.1.0",
+  "description": "Local, dependency-free collector that transforms agent execution traces into signed, privacy-reviewed Agent Outcome Capsules. Never transmits data externally.",
+  "type": "module",
+  "main": "foundry-collector.mjs",
+  "bin": {
+    "foundry-collector": "foundry-collector.mjs"
+  },
+  "scripts": {
+    "collect": "node foundry-collector.mjs",
+    "generate-keypair": "node foundry-collector.mjs -g",
+    "verify": "node foundry-collector.mjs -v",
+    "test": "node test/collector.test.mjs"
+  },
+  "keywords": [
+    "agent",
+    "outcome",
+    "capsule",
+    "l402",
+    "x402",
+    "evaluation",
+    "provenance",
+    "privacy",
+    "redaction",
+    "loop-xxi"
+  ],
+  "author": "Loop XXI LLC",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "foundry-collector.mjs",
+    "README.md",
+    "schemas/agent-outcome-capsule.schema.json"
+  ]
+}

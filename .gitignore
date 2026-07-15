@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+
+# Key pairs and secrets
+keypair.json
+*.pem
+!examples/public-key.pem
+!schemas/
+
+# Environment
+.env
+.env.local
+
+# Output
+output/
+*.capsule.json
+!examples/*capsule*
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://loopxxi.com/schemas/vault-capsule-v1.json",
+  "title": "LoopXXI Vault Capsule",
+  "description": "Opaque, encrypted, user-controlled capsule envelope. Reuses the live Vault envelope, attestation, and quality-receipt primitives. Server rows expose only ciphertext, hashes, public keys, and signatures — never plaintext, the DEK, or any private key.",
+  "type": "object",
+  "required": [
+    "contract",
+    "contractVersion",
+    "id",
+    "appType",
+    "appVersion",
+    "createdAt",
+    "updatedAt",
+    "title",
+    "enc",
+    "payloadHash",
+    "ciphertextHash",
+    "userPublicKey",
+    "userSignature",
+    "envelopeHash"
+  ],
+  "properties": {
+    "contract": { "const": "loopxxi.vault.capsule" },
+    "contractVersion": { "type": "string", "pattern": "^1\\.[0-9]+\\.[0-9]+$" },
+    "id": { "type": "string", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$" },
+    "appType": { "type": "string" },
+    "appVersion": { "type": "string" },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "updatedAt": { "type": "string", "format": "date-time" },
+    "title": { "const": "Encrypted capsule" },
+    "enc": {
+      "type": "object",
+      "required": ["ciphertext", "iv", "wrappedDek", "wrapIv"],
+      "properties": {
+        "ciphertext": { "type": "string", "contentEncoding": "base64" },
+        "iv": { "type": "string", "contentEncoding": "base64" },
+        "wrappedDek": { "type": "string", "contentEncoding": "base64" },
+        "wrapIv": { "type": "string", "contentEncoding": "base64" }
+      },
+      "additionalProperties": false
+    },
+    "payloadHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "ciphertextHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "userPublicKey": { "type": "string", "contentEncoding": "base64" },
+    "userSignature": { "type": "string", "contentEncoding": "base64" },
+    "envelopeHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "attestation": {
+      "type": "object",
+      "required": ["capsuleHash", "userIdHash", "appId", "appVersion", "timestamp", "provenanceLevel", "serverPublicKey", "serverSignature", "mode"],
+      "properties": {
+        "capsuleHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "userIdHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "appId": { "type": "string" },
+        "appVersion": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "provenanceLevel": { "enum": ["local_export", "authenticated_session", "verified_human"] },
+        "qualityReceipt": { "$ref": "#/$defs/qualityReceipt" },
+        "serverPublicKey": { "type": "string", "contentEncoding": "base64" },
+        "serverSignature": { "type": "string", "contentEncoding": "base64" },
+        "mode": { "enum": ["poc_local", "production_server"] }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "$comment": "poc_local receipts are self-signed locally and MUST NOT claim an authenticated Vault session.",
+          "if": { "properties": { "mode": { "const": "poc_local" } } },
+          "then": { "properties": { "provenanceLevel": { "const": "local_export" } } }
+        },
+        {
+          "$comment": "authenticated_session provenance is only legitimate for production_server receipts.",
+          "if": { "properties": { "provenanceLevel": { "const": "authenticated_session" } } },
+          "then": { "properties": { "mode": { "const": "production_server" } } }
+        }
+      ]
+    },
+    "qualityReceipt": { "$ref": "#/$defs/qualityReceipt" }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "qualityReceipt": {
+      "type": "object",
+      "required": ["version", "source_type", "record_count", "turn_count", "time_range", "required_field_nonempty_rate", "empty_count", "duplicate_rate", "content_byte_count", "content_commitment"],
+      "properties": {
+        "version": { "const": 1 },
+        "source_type": { "type": "string" },
+        "record_count": { "type": "integer", "minimum": 0 },
+        "turn_count": { "type": "integer", "minimum": 0 },
+        "time_range": {
+          "type": "object",
+          "required": ["min", "max"],
+          "properties": { "min": { "type": "string" }, "max": { "type": "string" } },
+          "additionalProperties": false
+        },
+        "required_field_nonempty_rate": { "type": "number", "minimum": 0, "maximum": 1 },
+        "empty_count": { "type": "integer", "minimum": 0 },
+        "duplicate_rate": { "type": "number", "minimum": 0, "maximum": 1 },
+        "content_byte_count": { "type": "integer", "minimum": 0 },
+        "content_commitment": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      },
+      "additionalProperties": false
+    }
+  }
+}

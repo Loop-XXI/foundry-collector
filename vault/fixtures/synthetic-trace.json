@@ -1,0 +1,11 @@
+{
+  "capsule_id": "AOC-SYNTH001",
+  "owner": { "owner_id": "loop-xxi-llc", "owner_type": "business", "public_name": "Loop XXI LLC" },
+  "rights": { "ownership_attested": true, "collection_basis": "owner_generated_business_telemetry", "third_party_restrictions_reviewed": true, "evidence_reference": "https://github.com/Loop-XXI/foundry-collector" },
+  "environment": { "domain": "agent-payment-infrastructure", "agent_architecture": "synthetic test harness", "model_family": "not_applicable", "tool_classes": ["HTTP", "L402"] },
+  "task": { "task_class": "vault-capsule-export-demo", "objective": "Prove a signed AOC can be sealed into a Vault capsule with synthetic data.", "success_criteria": ["Envelope hash matches", "User signature verifies", "Buyer decrypt recovers the AOC", "No plaintext or key leaks"] },
+  "failure": { "taxonomy": "payment_challenge", "decisive_step": 1, "observable_evidence": ["Synthetic 402 challenge observed", "Token field format validated"], "severity": "low", "raw_trace_included": false },
+  "intervention": { "intervention_class": "demo-only", "change_summary": "Synthetic fixture; no real change.", "version_reference": "synthetic-0" },
+  "outcome": { "before": { "state": "unsealed" }, "after": { "state": "sealed" }, "success_verified": true, "verification_method": "deterministic_test", "replay_count": 1 },
+  "trace": { "note": "This is fully synthetic. No secrets, no PII, no chain-of-thought. Values are placeholders for a Vault export demonstration.", "request": { "method": "GET", "url": "https://example.test/l402/demo" }, "response": { "status": 402, "description": "10 sat synthetic L402 challenge" } }
+}

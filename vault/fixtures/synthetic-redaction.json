@@ -1,0 +1,23 @@
+{
+  "tool_version": "loop-foundry-collector-0.1.0",
+  "generated_at": "2026-07-17T02:06:13.167Z",
+  "source_hash": "sha256:80d3bd3d81f7d7eb8a6954be3b9e8d80483b57dc1ccb2b34423ea3fd88a07eca",
+  "capsule_hash": "sha256:e46af01095197c035478851535535b11643b31f62748b0c26173bd60868be868",
+  "summary": {
+    "total_secret_findings": 0,
+    "total_pii_findings": 0,
+    "total_cot_findings": 0,
+    "critical_secrets": 0,
+    "high_secrets": 0,
+    "chain_of_thought_detected": false
+  },
+  "secret_findings": [],
+  "pii_findings": [],
+  "cot_findings": [],
+  "privacy_assessment": {
+    "secret_scan": "pass",
+    "pii_scan": "pass",
+    "chain_of_thought_included": false
+  },
+  "note": "This report is generated locally. No data was transmitted externally. Secret and PII values have been replaced with [REDACTED:type] markers in the capsule body."
+}

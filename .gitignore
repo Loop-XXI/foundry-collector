@@ -5,6 +5,7 @@ node_modules/
 keypair.json
 *.pem
 !examples/public-key.pem
+!vault/fixtures/synthetic-aoc-pubkey.pem
 !schemas/
 
 # Environment
@@ -19,3 +20,5 @@ output/
 # OS
 .DS_Store
 Thumbs.db
+vault/fixtures/*keys*.json
+vault/fixtures/synthetic-keys.json

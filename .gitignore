@@ -19,3 +19,5 @@ output/
 # OS
 .DS_Store
 Thumbs.db
+vault/fixtures/*keys*.json
+vault/fixtures/synthetic-keys.json

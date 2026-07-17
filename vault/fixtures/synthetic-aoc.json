@@ -1,0 +1,166 @@
+{
+  "capsule_id": "AOC-SYNTH001",
+  "schema_version": "0.1.0",
+  "owner": {
+    "owner_id": "loop-xxi-llc",
+    "owner_type": "business",
+    "public_name": "Loop XXI LLC"
+  },
+  "rights": {
+    "ownership_attested": true,
+    "collection_basis": "owner_generated_business_telemetry",
+    "third_party_restrictions_reviewed": true,
+    "evidence_reference": "https://github.com/Loop-XXI/foundry-collector"
+  },
+  "provenance": {
+    "source_hash": "sha256:80d3bd3d81f7d7eb8a6954be3b9e8d80483b57dc1ccb2b34423ea3fd88a07eca",
+    "capsule_hash": "sha256:bc6255c9d63c624d00808b2bb29f8cffbb94f6bb9ec267bd99d9aa79444a9bd5",
+    "captured_at": "2026-07-17T01:36:57.931Z",
+    "transformation_log": [
+      {
+        "step": "ingest",
+        "tool_version": "loop-foundry-collector-0.1.0",
+        "timestamp": "2026-07-17T01:36:57.931Z",
+        "reviewer_id": null
+      },
+      {
+        "step": "secret_scan",
+        "tool_version": "loop-foundry-collector-0.1.0",
+        "timestamp": "2026-07-17T01:36:57.931Z",
+        "reviewer_id": null
+      },
+      {
+        "step": "pii_redaction",
+        "tool_version": "loop-foundry-collector-0.1.0",
+        "timestamp": "2026-07-17T01:36:57.931Z",
+        "reviewer_id": null
+      },
+      {
+        "step": "normalization",
+        "tool_version": "agent-outcome-capsule-schema-0.1.0",
+        "timestamp": "2026-07-17T01:36:57.931Z",
+        "reviewer_id": null
+      },
+      {
+        "step": "labeling",
+        "tool_version": "loop-foundry-collector-0.1.0",
+        "timestamp": "2026-07-17T01:36:57.931Z",
+        "reviewer_id": null
+      },
+      {
+        "step": "counterfactual_validation",
+        "tool_version": "loop-foundry-collector-0.1.0",
+        "timestamp": "2026-07-17T01:36:57.931Z",
+        "reviewer_id": null
+      },
+      {
+        "step": "signing",
+        "tool_version": "loop-foundry-collector-0.1.0",
+        "timestamp": "2026-07-17T01:36:57.931Z",
+        "reviewer_id": null
+      }
+    ],
+    "signatures": [
+      {
+        "signer_role": "owner",
+        "algorithm": "ed25519",
+        "public_key_id": "sha256:3f0fdfca1bf9ada2a722141c33f514c28d2b4e1186e6f21709d50c8f459b379e",
+        "signature": "nyEmvHZEcJsrZY43bIbmXppJauCGqBoerA5uIpiH6fkpjrYMPO01TtVyx5fcIl0pc7hebLJd3Nw/CeI8RA1VBQ=="
+      }
+    ]
+  },
+  "environment": {
+    "domain": "agent-payment-infrastructure",
+    "agent_architecture": "synthetic test harness",
+    "model_family": "not_applicable",
+    "tool_classes": [
+      "HTTP",
+      "L402"
+    ]
+  },
+  "task": {
+    "task_class": "vault-capsule-export-demo",
+    "objective": "Prove a signed AOC can be sealed into a Vault capsule with synthetic data.",
+    "success_criteria": [
+      "Envelope hash matches",
+      "User signature verifies",
+      "Buyer decrypt recovers the AOC",
+      "No plaintext or key leaks"
+    ]
+  },
+  "failure": {
+    "taxonomy": "payment_challenge",
+    "decisive_step": 1,
+    "observable_evidence": [
+      "Synthetic 402 challenge observed",
+      "Token field format validated"
+    ],
+    "severity": "low",
+    "raw_trace_included": false
+  },
+  "intervention": {
+    "intervention_class": "demo-only",
+    "change_summary": "Synthetic fixture; no real change.",
+    "version_reference": "synthetic-0"
+  },
+  "outcome": {
+    "before": {
+      "state": "unsealed"
+    },
+    "after": {
+      "state": "sealed"
+    },
+    "success_verified": true,
+    "verification_method": "deterministic_test",
+    "replay_count": 1
+  },
+  "quality": {
+    "completeness_score": 0.8,
+    "reproducibility_score": 0.8,
+    "novelty_score": 0.5,
+    "validation_status": "owner_attested",
+    "duplicate_cluster_id": null
+  },
+  "privacy": {
+    "pii_scan": "pass",
+    "secret_scan": "pass",
+    "personal_data_included": false,
+    "chain_of_thought_included": false,
+    "redaction_summary": [
+      "No secrets, PII, or chain-of-thought content detected in the source trace."
+    ]
+  },
+  "license": {
+    "license_id": "LOOP-FOUNDATION-EVAL-0.1-DRAFT",
+    "allowed_uses": [
+      "evaluation",
+      "regression_testing",
+      "research",
+      "internal_quality_assurance"
+    ],
+    "prohibited_uses": [
+      "identity_inference",
+      "eligibility_decisions",
+      "surveillance",
+      "reidentification",
+      "resale",
+      "unlicensed_model_training"
+    ],
+    "term": "Draft example only; no third-party license granted.",
+    "revocation_applies_to_future_access": true,
+    "territory": "Not applicable to draft example",
+    "attribution_required": true
+  },
+  "_redacted_content": {
+    "note": "This is fully synthetic. No secrets, no PII, no chain-of-thought. Values are placeholders for a Vault export demonstration.",
+    "request": {
+      "method": "GET",
+      "url": "https://example.test/l402/demo"
+    },
+    "response": {
+      "status": 402,
+      "description": "10 sat synthetic L402 challenge"
+    }
+  },
+  "_body_timestamp": "2026-07-17T01:36:57.931Z"
+}

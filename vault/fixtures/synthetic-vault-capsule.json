@@ -1,0 +1,62 @@
+{
+  "contract": "loopxxi.vault.capsule",
+  "contractVersion": "1.0.0",
+  "id": "9feecf40-98f2-4881-a5c3-4117145beeb1",
+  "appType": "agent_outcome",
+  "appVersion": "0.1.0",
+  "createdAt": "2026-07-17T01:36:57.931Z",
+  "updatedAt": "2026-07-17T01:36:57.931Z",
+  "title": "Encrypted capsule",
+  "enc": {
+    "ciphertext": "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",
+    "iv": "ELhBDnE0rYB9c/zt",
+    "wrappedDek": "tAmXQmKK8H7+ZFUVVdnDnZh9tk3rDzPn69/mN9Pek7OWiNvH40Ba90HechZ5dCm4",
+    "wrapIv": "jy+Wmz0qzfG1JWg6"
+  },
+  "payloadHash": "b4fe34f43bcd74c0ce89507e9e50f6b5bf1e30a0f5b0276ed555361a57cba04a",
+  "ciphertextHash": "b4f59ecb703bd467f9317871058a32649065964a505f87616e8102c78e1bb31f",
+  "userPublicKey": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE/UEUEQXK+JSivXWGXm3qMQCcyZG11Tyi5nTxTA07rEQfiEmRdx3m+VuLG6DLbQRzqxV4xGqrBDwkVfipqntRBQ==",
+  "userSignature": "lRYWAeQ+BDmgn/BxUTJWswCbCCZm/zcDcqzZZwFMvuLOCn73zJcHV4etjYNzqMrXTEGaQBakHxm6U/7Ut28zAw==",
+  "envelopeHash": "73962451f6f6aee8efba392f49a64c5dc4f55b07f5cf9a883578d6083d3fa93d",
+  "attestation": {
+    "capsuleHash": "73962451f6f6aee8efba392f49a64c5dc4f55b07f5cf9a883578d6083d3fa93d",
+    "userIdHash": "1b25dd23c05592b48009123654fce1284d2f429a9c2be6bbcbac3a30b4ce4ec0",
+    "appId": "loopxxi.foundry-collector",
+    "appVersion": "0.1.0",
+    "timestamp": "2026-07-17T01:40:24.033Z",
+    "provenanceLevel": "authenticated_session",
+    "qualityReceipt": {
+      "version": 1,
+      "source_type": "agent_outcome",
+      "record_count": 1,
+      "turn_count": 1,
+      "time_range": {
+        "min": "2026-07-17T01:36:57.931Z",
+        "max": "2026-07-17T01:36:57.931Z"
+      },
+      "required_field_nonempty_rate": 1,
+      "empty_count": 0,
+      "duplicate_rate": 0,
+      "content_byte_count": 4424,
+      "content_commitment": "b4fe34f43bcd74c0ce89507e9e50f6b5bf1e30a0f5b0276ed555361a57cba04a"
+    },
+    "serverPublicKey": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEwne0in0HmoG/wRV6b5Ke/pnTy+TaA8GBObSOPfii6QgN2Ys9+yzvjjNmmzvFE6YXKibZU14IaCXVgFqHcYEfFg==",
+    "serverSignature": "KZ7qdN43IrhEjEklPcNhOhuPilvFcJVTlCXwWXIR8zDVSuaLgdqcEd21FXXFyliNgUZr5o+3E+v4qYN0iDQNyQ==",
+    "mode": "poc_local"
+  },
+  "qualityReceipt": {
+    "version": 1,
+    "source_type": "agent_outcome",
+    "record_count": 1,
+    "turn_count": 1,
+    "time_range": {
+      "min": "2026-07-17T01:36:57.931Z",
+      "max": "2026-07-17T01:36:57.931Z"
+    },
+    "required_field_nonempty_rate": 1,
+    "empty_count": 0,
+    "duplicate_rate": 0,
+    "content_byte_count": 4424,
+    "content_commitment": "b4fe34f43bcd74c0ce89507e9e50f6b5bf1e30a0f5b0276ed555361a57cba04a"
+  }
+}

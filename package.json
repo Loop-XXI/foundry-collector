@@ -11,7 +11,9 @@
     "collect": "node foundry-collector.mjs",
     "generate-keypair": "node foundry-collector.mjs -g",
     "verify": "node foundry-collector.mjs -v",
-    "test": "node test/collector.test.mjs"
+    "vault:export": "node vault/foundry-vault-export.mjs",
+    "vault:test": "node vault/foundry-vault-export.test.mjs",
+    "test": "node test/collector.test.mjs && node vault/foundry-vault-export.test.mjs"
   },
   "keywords": [
     "agent",
@@ -33,6 +35,10 @@
   "files": [
     "foundry-collector.mjs",
     "README.md",
-    "schemas/agent-outcome-capsule.schema.json"
+    "schemas/agent-outcome-capsule.schema.json",
+    "vault/foundry-vault-export.mjs",
+    "vault/vault-capsule-v1.schema.json",
+    "vault/VAULT-CAPSULE-CONTRACT.md",
+    "vault/.well-known/loop-vault-capsule.json"
   ]
 }

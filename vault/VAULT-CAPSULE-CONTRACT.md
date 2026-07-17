@@ -94,7 +94,11 @@ The plaintext that is encrypted is a JSON string:
 
 ## 4. Attestation
 
-Matches `Attestation` in the live Vault. HONEST claim: *"an authenticated LoopXXI session sealed this capsule at time T."* It does **not** claim content is true.
+Matches `Attestation` in the live Vault. Two honest claims, keyed to `mode`:
+- `production_server`: *"an authenticated LoopXXI session sealed this capsule at time T"* (the Vault attest Edge Function verified a real Supabase JWT).
+- `poc_local`: *"this capsule was sealed locally at time T with a self-generated key"* — **no** authenticated-session claim.
+
+Neither claims content is true.
 
 ```jsonc
 {
@@ -103,7 +107,7 @@ Matches `Attestation` in the live Vault. HONEST claim: *"an authenticated LoopXX
   "appId": "<producer app id>",
   "appVersion": "<producer app version>",
   "timestamp": "<ISO>",
-  "provenanceLevel": "authenticated_session" | "verified_human",
+  "provenanceLevel": "local_export" | "authenticated_session" | "verified_human",
   "qualityReceipt": { /* §5, echoed and signed */ },
   "serverPublicKey": "<SPKI base64>",
   "serverSignature": "<signature over canonicalJson(unsigned attestation)>",
@@ -111,7 +115,15 @@ Matches `Attestation` in the live Vault. HONEST claim: *"an authenticated LoopXX
 }
 ```
 
-`production_server` receipts MUST verify against the **pinned** production key (`PRODUCTION_ATTEST_PUBLIC_SPKI`); a self-minted key must never verify as production. Verification logic is `verifyAttestation` in `src/lib/attest-verify.ts`.
+**Mode is an explicit allowlist** — `poc_local` and `production_server` only. Any other/misspelled value MUST fail verification (no silent fallback to "treat as local").
+
+**Provenance binding (normative):**
+- `poc_local` receipts MUST carry `provenanceLevel: "local_export"`. They MUST NOT claim `authenticated_session` — the receipt was signed by a local key, not a JWT-authenticated server session.
+- `authenticated_session` (and the reserved `verified_human`) are legitimate **only** for `production_server`.
+
+`production_server` receipts MUST verify against the **pinned** production key (`PRODUCTION_ATTEST_PUBLIC_SPKI`); a self-minted key must never verify as production. Verification logic is `verifyAttestation` in `src/lib/attest-verify.ts` and, for the exporter, `verifyVaultCapsule` (mode allowlist + pinned-key rule) in `vault/foundry-vault-export.mjs`.
+
+**Production-response verification (normative).** When a producer obtains a `production_server` receipt from the attest Edge Function, it MUST verify — before emitting the capsule — that the returned `capsuleHash` equals the submitted envelope hash, the `serverPublicKey` equals the pinned key, and the signature verifies under the pinned key. A bad or mismatched response fails closed (`verifyProductionAttestation`).
 
 ## 5. Structural quality receipt
 
@@ -173,7 +185,10 @@ For CLI/library producers with no host, the equivalent manifest ships in-repo as
 |---|---|
 | Vault infra reads user plaintext | Only ciphertext + hashes + public keys stored. DEK wrapped under client vault key; vault key never transmitted. |
 | Row/ciphertext tampering | `envelopeHash` + `userSignature` (ECDSA P-256). Any change breaks verification. |
-| Forged provenance ("this came from LoopXXI") | `production_server` attestation verified against pinned server key; PoC receipts carry `poc_local` and never the production label. |
+| Forged provenance ("this came from LoopXXI") | `production_server` attestation verified against pinned server key; `poc_local` receipts carry `provenanceLevel: local_export` and never the authenticated/production label. |
+| Attestation mode confusion / misspelling | Mode is an explicit allowlist (`poc_local`, `production_server`); any other value fails closed with no fallback. |
+| Unverified source data sealed as "signed evidence" | The producer verifies the inner AOC's stored hash **and** owner signature (against a supplied public key) before sealing; a signed AOC with no supplied key, a corrupted hash, or a bad signature fails closed. |
+| Malicious/mismatched attest server response | `production_server` responses are verified (capsuleHash == submitted envelope hash, pinned key match, signature under pinned key) before the capsule is emitted. |
 | Quality inflation / lying about shape | Receipt recomputed by buyer from decrypted payload; signed by server; tamper on either side fails. |
 | Private key exfiltration into server metadata | Only public keys, signatures, and wrapped (encrypted) DEK ever leave the client. Enforced by conformance test §9. |
 | DEK leak on sale | DEK re-wrapped to buyer ECDH key locally; infra sees only the packed blob. |
@@ -188,9 +203,10 @@ An implementation is conforming if, for the fixtures in `vault/fixtures/`:
 1. `enc.ciphertext` decrypts to the sealed v3 payload using the client vault key.
 2. `payloadHash == sha256(sealedPayload)` and `ciphertextHash == sha256(enc.ciphertext)`.
 3. `envelopeHash == sha256(canonicalJson(signedEnvelope))` and `userSignature` verifies under `userPublicKey`.
-4. `attestation.capsuleHash == envelopeHash`; attestation signature verifies under its mode's rules.
+4. `attestation.mode` is in the allowlist; `attestation.capsuleHash == envelopeHash`; the attestation signature verifies under its mode's rules; and `provenanceLevel` is consistent with `mode` (`poc_local` ⇒ `local_export`; `authenticated_session` ⇒ `production_server`).
 5. The recomputed quality receipt deep-equals `qualityReceipt`.
 6. **No plaintext, no DEK, and no private key** appears anywhere in the capsule object (regex + structural scan). This is the privacy gate.
+7. **Inner-source integrity (producer-side, pre-seal):** before sealing, the producer recomputes the source AOC body hash, confirms it equals the stored `provenance.capsule_hash`, and verifies the owner signature under a **supplied** public key. Missing key, corrupted hash, or bad signature ⇒ refuse to seal.
 
 ## 10. Versioning & migration
 

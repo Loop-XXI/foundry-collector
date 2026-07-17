@@ -11,13 +11,20 @@
   "producer_notes": "Foundry Collector runs entirely on the owner's machine and never transmits data externally. Sealing to a Vault capsule happens client-side; LoopXXI Vault infrastructure only ever receives the opaque envelope if the owner chooses to sync or list it.",
   "envelope_schema_url": "https://loopxxi.com/schemas/vault-capsule-v1.json",
   "source_capsule_schema_url": "https://loopxxi.com/schemas/agent-outcome-capsule-v0.1.json",
-  "attestation": { "modes": ["poc_local", "production_server"] },
+  "attestation": {
+    "modes": ["poc_local", "production_server"],
+    "provenance_levels": ["local_export", "authenticated_session", "verified_human"],
+    "local_provenance_level": "local_export",
+    "notes": "Mode is an explicit allowlist; unknown modes fail closed. poc_local receipts carry provenanceLevel local_export and never claim an authenticated session. production_server responses are verified against the pinned key before a capsule is emitted."
+  },
   "buyer_key_wrap": "ecdh-p256-aesgcm",
   "vault_ingest_url": "https://vault.loopxxi.com",
   "exporter": {
-    "command": "node vault/foundry-vault-export.mjs -i <aoc-capsule.json> -o <vault-capsule.json>",
+    "command": "node vault/foundry-vault-export.mjs -i <aoc-capsule.json> -o <vault-capsule.json> --aoc-pubkey <owner-pub.pem>",
     "input": "a signed Agent Outcome Capsule (AOC) v0.1.0",
-    "output": "a loopxxi.vault.capsule v1.0.0 envelope"
+    "output": "a loopxxi.vault.capsule v1.0.0 envelope",
+    "requires_aoc_pubkey": true,
+    "aoc_verification": "The inner AOC stored hash and owner signature are verified against the supplied public key before sealing; fails closed on mismatch."
   },
   "contact": "business@loopxxi.com"
 }

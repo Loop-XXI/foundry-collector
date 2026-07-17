@@ -21,17 +21,29 @@ live LoopXXI Vault at https://vault.loopxxi.com.
 ## Quick start
 
 ```bash
-# 1. Produce a signed AOC from a trace (existing collector)
-node foundry-collector.mjs -i trace.json -o aoc.json
+# 1. Produce a signed AOC from a trace, with a persistent owner keypair
+node foundry-collector.mjs -g owner-keypair.json          # once
+node foundry-collector.mjs -i trace.json -o aoc.json -k owner-keypair.json
+# extract the owner public key PEM (needed to verify the AOC before sealing)
+node -e "require('fs').writeFileSync('owner-pub.pem', require('./owner-keypair.json').publicKey)"
 
-# 2. Seal it into a Vault capsule (client-held key; nothing transmitted)
+# 2. Seal it into a Vault capsule (client-held key; nothing transmitted).
+#    --aoc-pubkey is REQUIRED for a signed AOC: the inner hash + owner
+#    signature are verified before sealing, and the seal fails closed on any
+#    mismatch. Never seals an unverified signed AOC.
 node vault/foundry-vault-export.mjs -i aoc.json -o capsule.json \
-  --key-out keys.json --passphrase '<your passphrase>'
+  --aoc-pubkey owner-pub.pem --key-out keys.json --passphrase '<your passphrase>'
 
-# 3. Verify (envelope, signature, attestation, buyer decrypt, leak scan)
+# 3. Verify (envelope, signature, attestation mode+provenance, buyer decrypt, leak scan)
 node vault/foundry-vault-export.mjs -i capsule.json --verify \
   --passphrase '<your passphrase>' --salt "$(jq -r .saltB64 keys.json)"
 ```
+
+Local seals produce a `poc_local` attestation with the honest
+`provenanceLevel: local_export` — it does **not** claim an authenticated Vault
+session. Only a `production_server` receipt from the Vault attest Edge Function
+(via `--attest-url`) may carry `authenticated_session`, and that response is
+verified (hash + pinned key + signature) before the capsule is emitted.
 
 ## Privacy boundary (honest)
 

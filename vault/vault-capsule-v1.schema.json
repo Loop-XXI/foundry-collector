@@ -54,13 +54,25 @@
         "appId": { "type": "string" },
         "appVersion": { "type": "string" },
         "timestamp": { "type": "string", "format": "date-time" },
-        "provenanceLevel": { "enum": ["authenticated_session", "verified_human"] },
+        "provenanceLevel": { "enum": ["local_export", "authenticated_session", "verified_human"] },
         "qualityReceipt": { "$ref": "#/$defs/qualityReceipt" },
         "serverPublicKey": { "type": "string", "contentEncoding": "base64" },
         "serverSignature": { "type": "string", "contentEncoding": "base64" },
         "mode": { "enum": ["poc_local", "production_server"] }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "$comment": "poc_local receipts are self-signed locally and MUST NOT claim an authenticated Vault session.",
+          "if": { "properties": { "mode": { "const": "poc_local" } } },
+          "then": { "properties": { "provenanceLevel": { "const": "local_export" } } }
+        },
+        {
+          "$comment": "authenticated_session provenance is only legitimate for production_server receipts.",
+          "if": { "properties": { "provenanceLevel": { "const": "authenticated_session" } } },
+          "then": { "properties": { "mode": { "const": "production_server" } } }
+        }
+      ]
     },
     "qualityReceipt": { "$ref": "#/$defs/qualityReceipt" }
   },

@@ -1,8 +1,8 @@
 {
   "tool_version": "loop-foundry-collector-0.1.0",
-  "generated_at": "2026-07-17T01:36:57.940Z",
+  "generated_at": "2026-07-17T02:06:13.167Z",
   "source_hash": "sha256:80d3bd3d81f7d7eb8a6954be3b9e8d80483b57dc1ccb2b34423ea3fd88a07eca",
-  "capsule_hash": "sha256:bc6255c9d63c624d00808b2bb29f8cffbb94f6bb9ec267bd99d9aa79444a9bd5",
+  "capsule_hash": "sha256:e46af01095197c035478851535535b11643b31f62748b0c26173bd60868be868",
   "summary": {
     "total_secret_findings": 0,
     "total_pii_findings": 0,

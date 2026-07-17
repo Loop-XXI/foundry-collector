@@ -10,11 +10,14 @@ import { fileURLToPath } from 'node:url';
 import {
   sealAocToVaultCapsule, verifyVaultCapsule, scanCapsuleForLeaks,
   privacyGate, computeQualityReceipt, canonicalJson,
-  CONTRACT, CONTRACT_VERSION, APP_ID,
+  verifyAocSignature, verifyProductionAttestation, recomputeAocBodyHash,
+  CONTRACT, CONTRACT_VERSION, APP_ID, LOCAL_PROVENANCE_LEVEL,
 } from './foundry-vault-export.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const AOC = JSON.parse(readFileSync(resolve(here, 'fixtures/synthetic-aoc.json'), 'utf8'));
+const AOC_PUBKEY_PEM = readFileSync(resolve(here, 'fixtures/synthetic-aoc-pubkey.pem'), 'utf8');
+const SEAL_OPTS = { passphrase: 'test-pass', aocPublicKeyPem: AOC_PUBKEY_PEM };
 
 let pass = 0, fail = 0;
 async function test(name, fn) {
@@ -41,7 +44,7 @@ await test('privacy gate blocks personal_data_included=true', () => {
 
 let sealed;
 await test('seal produces a v1.0.0 capsule with the right contract fields', async () => {
-  sealed = await sealAocToVaultCapsule(AOC, { passphrase: 'test-pass' });
+  sealed = await sealAocToVaultCapsule(AOC, SEAL_OPTS);
   const c = sealed.capsule;
   assert.strictEqual(c.contract, CONTRACT);
   assert.strictEqual(c.contractVersion, CONTRACT_VERSION);
@@ -113,6 +116,105 @@ await test('quality receipt is recomputable & deterministic from the sealed payl
   const qr = await computeQualityReceipt(sealed.sealedPayload);
   assert.strictEqual(canonicalJson(qr), canonicalJson(sealed.capsule.qualityReceipt));
   assert.strictEqual(qr.content_commitment, sealed.capsule.payloadHash);
+});
+
+// ---- Fix 1: inner-AOC hash + signature verification before sealing ----
+
+await test('Fix1: signed AOC verifies with the correct public key', () => {
+  const r = verifyAocSignature(AOC, AOC_PUBKEY_PEM);
+  assert.strictEqual(r.ok, true, r.problems.join('; '));
+  assert.strictEqual(r.recomputedHash, AOC.provenance.capsule_hash);
+});
+
+await test('Fix1: sealing a signed AOC without a public key FAILS closed', async () => {
+  await assert.rejects(
+    () => sealAocToVaultCapsule(AOC, { passphrase: 'test-pass' }),
+    /no --aoc-pubkey|inner AOC verification failed/,
+  );
+});
+
+await test('Fix1: CORRUPTED inner AOC hash is rejected (hash mismatch)', async () => {
+  const bad = JSON.parse(JSON.stringify(AOC));
+  bad.provenance.capsule_hash = 'sha256:' + '0'.repeat(64);
+  const r = verifyAocSignature(bad, AOC_PUBKEY_PEM);
+  assert.strictEqual(r.ok, false);
+  assert.ok(r.problems.some((p) => /capsule_hash mismatch/.test(p)), r.problems.join('; '));
+  await assert.rejects(() => sealAocToVaultCapsule(bad, SEAL_OPTS), /inner AOC verification failed/);
+});
+
+await test('Fix1: TAMPERED inner AOC body is rejected (recomputed hash differs)', async () => {
+  const bad = JSON.parse(JSON.stringify(AOC));
+  bad.outcome.success_verified = !bad.outcome.success_verified; // mutate a signed body field
+  const r = verifyAocSignature(bad, AOC_PUBKEY_PEM);
+  assert.strictEqual(r.ok, false);
+  assert.notStrictEqual(recomputeAocBodyHash(bad), bad.provenance.capsule_hash);
+  await assert.rejects(() => sealAocToVaultCapsule(bad, SEAL_OPTS), /inner AOC verification failed/);
+});
+
+await test('Fix1: CORRUPTED inner AOC signature is rejected', async () => {
+  const bad = JSON.parse(JSON.stringify(AOC));
+  const sigBuf = Buffer.from(bad.provenance.signatures[0].signature, 'base64');
+  sigBuf[0] ^= 0xff; // flip a signature byte
+  bad.provenance.signatures[0].signature = sigBuf.toString('base64');
+  const r = verifyAocSignature(bad, AOC_PUBKEY_PEM);
+  assert.strictEqual(r.ok, false);
+  assert.ok(r.problems.some((p) => /signature failed to verify|verification error/.test(p)), r.problems.join('; '));
+  await assert.rejects(() => sealAocToVaultCapsule(bad, SEAL_OPTS), /inner AOC verification failed/);
+});
+
+await test('Fix1: WRONG public key rejects a genuine signature', () => {
+  // A structurally-valid but unrelated P-256 key must not verify the ed25519 sig.
+  const wrongPem = '-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEKmMVRYcMZAl9wO51jDbBX1Tc1Zqf' +
+    'UbxnixZTZE0keV30IKGfkxOOpdZtEUafGyOM6h2QKO1CN5y01Yg/UBE6ew==\n-----END PUBLIC KEY-----\n';
+  const r = verifyAocSignature(AOC, wrongPem);
+  assert.strictEqual(r.ok, false);
+});
+
+// ---- Fix 2: attestation mode allowlist + honest provenance ----
+
+await test('Fix2: poc_local receipt uses honest provenanceLevel local_export', () => {
+  assert.strictEqual(sealed.capsule.attestation.mode, 'poc_local');
+  assert.strictEqual(sealed.capsule.attestation.provenanceLevel, LOCAL_PROVENANCE_LEVEL);
+  assert.notStrictEqual(sealed.capsule.attestation.provenanceLevel, 'authenticated_session');
+});
+
+await test('Fix2: UNKNOWN/misspelled attestation mode fails closed', async () => {
+  const c = JSON.parse(JSON.stringify(sealed.capsule));
+  c.attestation.mode = 'poc_locall'; // typo
+  const r = await verifyVaultCapsule(c, {});
+  assert.strictEqual(r.attestationModeAllowed, false);
+  assert.strictEqual(r.attestationSignatureValid, false);
+});
+
+await test('Fix2: poc_local claiming authenticated_session is rejected', async () => {
+  const c = JSON.parse(JSON.stringify(sealed.capsule));
+  c.attestation.provenanceLevel = 'authenticated_session'; // dishonest for a local receipt
+  const r = await verifyVaultCapsule(c, {});
+  assert.strictEqual(r.attestationSignatureValid, false);
+});
+
+// ---- Fix 3: production attest-response verification (fails closed) ----
+
+await test('Fix3: production response with wrong capsuleHash fails closed', async () => {
+  const att = { ...sealed.capsule.attestation, mode: 'production_server', capsuleHash: 'sha256mismatch' };
+  const r = await verifyProductionAttestation(att, sealed.capsule.envelopeHash);
+  assert.strictEqual(r.ok, false);
+  assert.ok(r.problems.some((p) => /capsuleHash/.test(p)));
+});
+
+await test('Fix3: production response not signed by the pinned key fails closed', async () => {
+  // Our local receipt is self-signed; relabel as production and submit the
+  // matching hash. The pinned-key check must still reject it.
+  const att = { ...sealed.capsule.attestation, mode: 'production_server' };
+  const r = await verifyProductionAttestation(att, sealed.capsule.envelopeHash);
+  assert.strictEqual(r.ok, false);
+  assert.ok(r.problems.some((p) => /pinned production key|signature failed/.test(p)));
+});
+
+await test('Fix3: production response with unknown provenanceLevel fails closed', async () => {
+  const att = { ...sealed.capsule.attestation, mode: 'production_server', provenanceLevel: 'made_up' };
+  const r = await verifyProductionAttestation(att, sealed.capsule.envelopeHash);
+  assert.strictEqual(r.ok, false);
 });
 
 console.log(`\n${pass} passed, ${fail} failed`);

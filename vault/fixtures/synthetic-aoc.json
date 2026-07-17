@@ -14,49 +14,49 @@
   },
   "provenance": {
     "source_hash": "sha256:80d3bd3d81f7d7eb8a6954be3b9e8d80483b57dc1ccb2b34423ea3fd88a07eca",
-    "capsule_hash": "sha256:bc6255c9d63c624d00808b2bb29f8cffbb94f6bb9ec267bd99d9aa79444a9bd5",
-    "captured_at": "2026-07-17T01:36:57.931Z",
+    "capsule_hash": "sha256:e46af01095197c035478851535535b11643b31f62748b0c26173bd60868be868",
+    "captured_at": "2026-07-17T02:06:13.163Z",
     "transformation_log": [
       {
         "step": "ingest",
         "tool_version": "loop-foundry-collector-0.1.0",
-        "timestamp": "2026-07-17T01:36:57.931Z",
+        "timestamp": "2026-07-17T02:06:13.163Z",
         "reviewer_id": null
       },
       {
         "step": "secret_scan",
         "tool_version": "loop-foundry-collector-0.1.0",
-        "timestamp": "2026-07-17T01:36:57.931Z",
+        "timestamp": "2026-07-17T02:06:13.163Z",
         "reviewer_id": null
       },
       {
         "step": "pii_redaction",
         "tool_version": "loop-foundry-collector-0.1.0",
-        "timestamp": "2026-07-17T01:36:57.931Z",
+        "timestamp": "2026-07-17T02:06:13.163Z",
         "reviewer_id": null
       },
       {
         "step": "normalization",
         "tool_version": "agent-outcome-capsule-schema-0.1.0",
-        "timestamp": "2026-07-17T01:36:57.931Z",
+        "timestamp": "2026-07-17T02:06:13.163Z",
         "reviewer_id": null
       },
       {
         "step": "labeling",
         "tool_version": "loop-foundry-collector-0.1.0",
-        "timestamp": "2026-07-17T01:36:57.931Z",
+        "timestamp": "2026-07-17T02:06:13.163Z",
         "reviewer_id": null
       },
       {
         "step": "counterfactual_validation",
         "tool_version": "loop-foundry-collector-0.1.0",
-        "timestamp": "2026-07-17T01:36:57.931Z",
+        "timestamp": "2026-07-17T02:06:13.163Z",
         "reviewer_id": null
       },
       {
         "step": "signing",
         "tool_version": "loop-foundry-collector-0.1.0",
-        "timestamp": "2026-07-17T01:36:57.931Z",
+        "timestamp": "2026-07-17T02:06:13.163Z",
         "reviewer_id": null
       }
     ],
@@ -64,8 +64,8 @@
       {
         "signer_role": "owner",
         "algorithm": "ed25519",
-        "public_key_id": "sha256:3f0fdfca1bf9ada2a722141c33f514c28d2b4e1186e6f21709d50c8f459b379e",
-        "signature": "nyEmvHZEcJsrZY43bIbmXppJauCGqBoerA5uIpiH6fkpjrYMPO01TtVyx5fcIl0pc7hebLJd3Nw/CeI8RA1VBQ=="
+        "public_key_id": "sha256:2d415c75b659826abfef9ed7f4e71350a529d3d314263b7e4f88c76882f62a36",
+        "signature": "l40YjYZluu4aITRBXoE033gzWzVROIy/1Tcdr1/W1o0rmU0uKg5zpauqb/QjWPsQAvDM2qAJ6rbljJ54qsYuBQ=="
       }
     ]
   },
@@ -162,5 +162,5 @@
       "description": "10 sat synthetic L402 challenge"
     }
   },
-  "_body_timestamp": "2026-07-17T01:36:57.931Z"
+  "_body_timestamp": "2026-07-17T02:06:13.163Z"
 }

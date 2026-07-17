@@ -35,7 +35,7 @@
  * License: MIT. Copyright (c) 2026 Loop XXI LLC. Contact: business@loopxxi.com
  */
 
-import { webcrypto } from 'node:crypto';
+import { webcrypto, createHash, createPublicKey, verify as nodeVerify } from 'node:crypto';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
@@ -51,6 +51,18 @@ export const APP_TYPE = 'agent_outcome';
 export const OPAQUE_TITLE = 'Encrypted capsule';
 export const SEALED_SCHEMA_VERSION = 3;
 export const KDF_ITERATIONS = 250_000;
+
+/** Allowlisted attestation modes. Any other value MUST fail verification. */
+export const ATTEST_MODES = ['poc_local', 'production_server'];
+/** Allowlisted provenance levels.
+ *  - local_export: honest label for a locally self-signed (poc_local) receipt.
+ *    It does NOT claim an authenticated Vault session — the exporter signed it
+ *    with its own local key, not a JWT-authenticated server session.
+ *  - authenticated_session: ONLY legitimate for production_server receipts,
+ *    where the Vault attest Edge Function verified a real Supabase JWT.
+ *  - verified_human: reserved (stronger production provenance). */
+export const PROVENANCE_LEVELS = ['local_export', 'authenticated_session', 'verified_human'];
+export const LOCAL_PROVENANCE_LEVEL = 'local_export';
 
 /** Pinned production attest public key (SPKI base64). Public, not secret.
  *  Matches PRODUCTION_ATTEST_PUBLIC_SPKI in src/lib/attest-verify.ts. May be
@@ -239,6 +251,28 @@ async function attestLocal(req) {
   return { ...unsigned, serverPublicKey: await exportPublicKeySpki(kp.publicKey), serverSignature, mode: 'poc_local' };
 }
 
+/**
+ * Validate a production_server attestation returned by the Vault attest Edge
+ * Function BEFORE we emit it. Fails closed unless: mode is production_server,
+ * capsuleHash equals our envelope hash, the serverPublicKey equals the pinned
+ * production key, and the signature verifies under the pinned key. `expectedHash`
+ * is the envelope hash we asked to be attested.
+ */
+export async function verifyProductionAttestation(att, expectedHash) {
+  const problems = [];
+  if (!att || typeof att !== 'object') { problems.push('attest response missing attestation object'); return { ok: false, problems }; }
+  if (att.mode !== 'production_server') problems.push(`expected mode production_server, got ${att.mode}`);
+  if (att.capsuleHash !== expectedHash) problems.push('attestation capsuleHash does not match the envelope hash we submitted');
+  if (att.serverPublicKey !== PRODUCTION_ATTEST_PUBLIC_SPKI) problems.push('attestation serverPublicKey does not match the pinned production key');
+  if (att.provenanceLevel && !PROVENANCE_LEVELS.includes(att.provenanceLevel)) problems.push(`unknown provenanceLevel ${att.provenanceLevel}`);
+  if (problems.length === 0) {
+    const { serverSignature, serverPublicKey, mode, ...rest } = att;
+    const sigOk = await verifyEnvelope(PRODUCTION_ATTEST_PUBLIC_SPKI, serverSignature, canonicalJson(rest));
+    if (!sigOk) problems.push('attestation signature failed to verify under the pinned production key');
+  }
+  return { ok: problems.length === 0, problems };
+}
+
 async function attestServer(req, attestUrl, bearer) {
   const body = {
     capsuleHash: req.capsuleHash, userIdHash: req.userIdHash,
@@ -274,6 +308,82 @@ export function aocToSealedPayload(aoc) {
   });
 }
 
+// ---------- inner AOC verification (reuses Foundry Collector verify logic) ----------
+
+/**
+ * Recompute a Foundry AOC's signed body hash exactly as foundry-collector.mjs
+ * does (buildCapsule / verify mode): the signed body is
+ *   { owner, environment, task, failure, intervention, outcome,
+ *     redacted_preview: _redacted_content || {}, timestamp: _body_timestamp }
+ * serialized with JSON.stringify(body, null, 0) and hashed 'sha256:'+hex.
+ */
+function aocSha256(data) {
+  const h = createHash('sha256');
+  h.update(typeof data === 'string' ? data : JSON.stringify(data));
+  return 'sha256:' + h.digest('hex');
+}
+
+export function recomputeAocBodyHash(aoc) {
+  const bodyTimestamp = aoc?._body_timestamp || aoc?.provenance?.captured_at;
+  const body = {
+    owner: aoc.owner,
+    environment: aoc.environment,
+    task: aoc.task,
+    failure: aoc.failure,
+    intervention: aoc.intervention,
+    outcome: aoc.outcome,
+    redacted_preview: aoc._redacted_content || {},
+    timestamp: bodyTimestamp,
+  };
+  return aocSha256(JSON.stringify(body, null, 0));
+}
+
+/**
+ * Verify a signed AOC's stored hash and owner signature BEFORE sealing.
+ * `aocPublicKeyPem` is the owner's public key (PEM) that signed the AOC; it is
+ * REQUIRED when the AOC carries an owner signature. Fails closed on any
+ * missing/mismatched/invalid field. Returns { ok, problems, recomputedHash }.
+ */
+export function verifyAocSignature(aoc, aocPublicKeyPem) {
+  const problems = [];
+  const storedHash = aoc?.provenance?.capsule_hash;
+  const sig = aoc?.provenance?.signatures?.[0];
+  if (!storedHash) problems.push('AOC provenance.capsule_hash missing');
+  if (!sig) problems.push('AOC provenance.signatures[0] missing');
+
+  let recomputedHash = null;
+  if (storedHash) {
+    recomputedHash = recomputeAocBodyHash(aoc);
+    if (recomputedHash !== storedHash) {
+      problems.push(`AOC capsule_hash mismatch (stored ${storedHash} != recomputed ${recomputedHash})`);
+    }
+  }
+
+  if (sig) {
+    if (!aocPublicKeyPem) {
+      problems.push('AOC is signed but no --aoc-pubkey was supplied; refusing to seal an unverified signed AOC');
+    } else {
+      const algo = sig.algorithm;
+      if (algo !== 'ed25519' && algo !== 'p256') {
+        problems.push(`Unsupported AOC signature algorithm: ${algo}`);
+      } else {
+        try {
+          const pubKey = createPublicKey(aocPublicKeyPem);
+          const dataBuf = Buffer.from(storedHash, 'utf8');
+          const sigBuf = Buffer.from(sig.signature, 'base64');
+          const ok = algo === 'ed25519'
+            ? nodeVerify(null, dataBuf, pubKey, sigBuf)
+            : nodeVerify('sha256', dataBuf, pubKey, sigBuf);
+          if (!ok) problems.push('AOC owner signature failed to verify under the supplied public key');
+        } catch (e) {
+          problems.push('AOC signature verification error: ' + e.message);
+        }
+      }
+    }
+  }
+  return { ok: problems.length === 0, problems, recomputedHash };
+}
+
 // ---------- privacy gate ----------
 
 export function privacyGate(aoc, { allowReview = false } = {}) {
@@ -293,6 +403,12 @@ export function privacyGate(aoc, { allowReview = false } = {}) {
 // ---------- main seal ----------
 
 export async function sealAocToVaultCapsule(aoc, opts = {}) {
+  // Fail closed: verify the inner AOC's stored hash + owner signature before
+  // doing any sealing work. A signed AOC requires a supplied public key.
+  const aocCheck = verifyAocSignature(aoc, opts.aocPublicKeyPem);
+  if (!aocCheck.ok) {
+    throw new Error('inner AOC verification failed: ' + aocCheck.problems.join('; '));
+  }
   const sealedPayload = aocToSealedPayload(aoc);
   const vk = await resolveVaultKey(opts);
   const vaultKey = vk.key ?? vk; // resolveVaultKey may return CryptoKey or {key,...}
@@ -322,14 +438,24 @@ export async function sealAocToVaultCapsule(aoc, opts = {}) {
   const userSignature = await signEnvelope(sk.privateKey, envelopeCanonical);
   const userIdHash = await sha256Hex(sk.publicKeySpki);
 
+  // Local (poc_local) receipts use the honest local-only provenance level.
+  // The server (production_server) sets its own provenance and we re-verify it.
   const attestReq = {
     capsuleHash: envelopeHash, userIdHash, appId: APP_ID, appVersion: APP_VERSION,
-    provenanceLevel: 'authenticated_session', envelopeCanonical, userSignature,
+    provenanceLevel: LOCAL_PROVENANCE_LEVEL, envelopeCanonical, userSignature,
     userPublicKey: sk.publicKeySpki, qualityReceipt,
   };
-  const attestation = opts.attestUrl
-    ? await attestServer(attestReq, opts.attestUrl, opts.attestBearer)
-    : await attestLocal(attestReq);
+  let attestation;
+  if (opts.attestUrl) {
+    attestation = await attestServer(attestReq, opts.attestUrl, opts.attestBearer);
+    // Fail closed: a bad or mismatched production response must not be emitted.
+    const prodCheck = await verifyProductionAttestation(attestation, envelopeHash);
+    if (!prodCheck.ok) {
+      throw new Error('production attestation rejected: ' + prodCheck.problems.join('; '));
+    }
+  } else {
+    attestation = await attestLocal(attestReq);
+  }
 
   const capsule = {
     contract: CONTRACT,
@@ -376,18 +502,31 @@ export async function verifyVaultCapsule(capsule, { vaultKeyB64, passphrase, sal
   results.envelopeHashMatches = (await sha256Hex(envelopeCanonical)) === capsule.envelopeHash;
   results.userSignatureValid = await verifyEnvelope(capsule.userPublicKey, capsule.userSignature, envelopeCanonical);
   results.ciphertextHashMatches = (await sha256Hex(capsule.enc.ciphertext)) === capsule.ciphertextHash;
-  // 2. attestation. Pinned-key rule (matches src/lib/attest-verify.ts):
+  // 2. attestation. Mode is an explicit allowlist; unknown/misspelled modes
+  //    fail closed. Pinned-key rule (matches src/lib/attest-verify.ts):
   //    production_server MUST match the pinned key and verify under it; a
   //    self-minted key claiming production must never verify as production.
+  //    poc_local receipts verify with their embedded key AND must carry an
+  //    allowlisted, non-authenticated_session provenance level.
   if (capsule.attestation) {
     const { serverSignature, serverPublicKey, mode, ...rest } = capsule.attestation;
     results.attestationCapsuleHashMatches = capsule.attestation.capsuleHash === capsule.envelopeHash;
-    if (mode === 'production_server') {
+    results.attestationModeAllowed = ATTEST_MODES.includes(mode);
+    const provOk = PROVENANCE_LEVELS.includes(capsule.attestation.provenanceLevel);
+    if (!results.attestationModeAllowed) {
+      // Unknown/misspelled mode: fail closed, do not attempt any verification.
+      results.attestationSignatureValid = false;
+    } else if (mode === 'production_server') {
       results.attestationSignatureValid =
+        provOk &&
         serverPublicKey === PRODUCTION_ATTEST_PUBLIC_SPKI &&
         (await verifyEnvelope(PRODUCTION_ATTEST_PUBLIC_SPKI, serverSignature, canonicalJson(rest)));
     } else {
-      results.attestationSignatureValid = await verifyEnvelope(serverPublicKey, serverSignature, canonicalJson(rest));
+      // poc_local: must NOT claim authenticated_session; verify with embedded key.
+      results.attestationSignatureValid =
+        provOk &&
+        capsule.attestation.provenanceLevel !== 'authenticated_session' &&
+        (await verifyEnvelope(serverPublicKey, serverSignature, canonicalJson(rest)));
     }
   }
   // 3. payload decrypt + quality recompute (needs the vault key or passphrase+salt)
@@ -439,6 +578,7 @@ function main() {
       'vault-key': { type: 'string' },
       'signing-priv': { type: 'string' },
       'signing-pub': { type: 'string' },
+      'aoc-pubkey': { type: 'string' },
       'attest-url': { type: 'string' },
       'attest-bearer': { type: 'string' },
       'allow-review': { type: 'boolean', default: false },
@@ -463,7 +603,12 @@ Options:
       --vault-key <b64>   Supply a raw AES-256 vault key (base64)
       --signing-priv <b64> Reuse an ECDSA P-256 signing private key (pkcs8 base64)
       --signing-pub <b64>  Matching signing public key (spki base64)
-      --attest-url <url>  Use the production attest Edge Function (posts hashes + pubkeys only)
+      --aoc-pubkey <file> PEM public key that signed the source AOC. REQUIRED to
+                          seal a signed AOC; the inner hash + owner signature are
+                          verified before sealing (fails closed on mismatch).
+      --attest-url <url>  Use the production attest Edge Function (posts hashes + pubkeys only).
+                          The returned production_server receipt is verified
+                          (hash + pinned key + signature) before the capsule is emitted.
       --attest-bearer <t> Supabase JWT for the attest call
       --allow-review      Seal even if privacy scan is 'review' (never seals 'fail')
   -v, --verify            Verify a capsule (envelope, signature, attestation, leaks)
@@ -498,11 +643,13 @@ Nothing is transmitted unless --attest-url is given (and that posts only hashes 
     process.exit(2);
   }
 
+  const aocPublicKeyPem = values['aoc-pubkey'] ? readFileSync(resolve(values['aoc-pubkey']), 'utf8') : undefined;
   sealAocToVaultCapsule(obj, {
     passphrase: values.passphrase,
     vaultKeyB64: values['vault-key'],
     signingPrivPkcs8B64: values['signing-priv'],
     signingPubSpkiB64: values['signing-pub'],
+    aocPublicKeyPem,
     attestUrl: values['attest-url'],
     attestBearer: values['attest-bearer'],
   }).then(async ({ capsule, keyMaterial }) => {

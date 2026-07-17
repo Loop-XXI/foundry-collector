@@ -5,6 +5,7 @@ node_modules/
 keypair.json
 *.pem
 !examples/public-key.pem
+!vault/fixtures/synthetic-aoc-pubkey.pem
 !schemas/
 
 # Environment
